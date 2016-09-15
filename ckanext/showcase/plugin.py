@@ -241,8 +241,8 @@ class ShowcasePlugin(plugins.SingletonPlugin, lib_plugins.DefaultDatasetForm):
         `showcase`.
         '''
         fq = search_params.get('fq', '')
-        if 'dataset_type:{0}'.format(DATASET_TYPE_NAME) not in fq:
-            fq = "{0} -dataset_type:{1}".format(search_params.get('fq', ''),
+        if u'dataset_type:{0}'.format(DATASET_TYPE_NAME) not in fq:
+            fq = u'{0} -dataset_type:{1}'.format(search_params.get('fq', ''),
                                                 DATASET_TYPE_NAME)
             search_params.update({'fq': fq})
         return search_params
