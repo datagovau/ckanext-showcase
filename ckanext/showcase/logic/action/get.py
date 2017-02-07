@@ -78,9 +78,12 @@ def showcase_package_list(context, data_dict):
         # for each package id, get the package dict and append to list if
         # active
         for pkg_id in pkg_id_list:
-            pkg = toolkit.get_action('package_show')(context, {'id': pkg_id})
-            if pkg['state'] == 'active':
-                pkg_list.append(pkg)
+            try:
+                pkg = toolkit.get_action('package_show')(context, {'id': pkg_id})
+                if pkg['state'] == 'active':
+                    pkg_list.append(pkg)
+            except toolkit.NotAuthorized:
+                pass
 
     return pkg_list
 
