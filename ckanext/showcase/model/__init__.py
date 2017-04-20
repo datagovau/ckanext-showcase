@@ -101,12 +101,14 @@ def define_showcase_package_association_table():
         Column('package_id', types.UnicodeText,
                ForeignKey('package.id',
                           ondelete='CASCADE',
-                          onupdate='CASCADE'),
+                          onupdate='CASCADE',
+                          deferrable=True),
                primary_key=True, nullable=False),
         Column('showcase_id', types.UnicodeText,
                ForeignKey('package.id',
                           ondelete='CASCADE',
-                          onupdate='CASCADE'),
+                          onupdate='CASCADE',
+                          deferrable=True),
                primary_key=True, nullable=False)
     )
 
