@@ -140,7 +140,8 @@ def define_showcase_admin_table():
                                  Column('user_id', types.UnicodeText,
                                         ForeignKey('user.id',
                                                    ondelete='CASCADE',
-                                                   onupdate='CASCADE'),
+                                                   onupdate='CASCADE',
+                                                   deferrable=True),
                                         primary_key=True, nullable=False))
 
     mapper(ShowcaseAdmin, showcase_admin_table)
