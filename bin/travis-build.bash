@@ -5,16 +5,18 @@ echo "This is travis-build.bash..."
 
 echo "Installing the packages that CKAN requires..."
 sudo apt-get update -qq
-sudo apt-get install postgresql-$PGVERSION solr-jetty libcommons-fileupload-java:amd64=1.2.2-1
+sudo apt-get install solr-jetty libcommons-fileupload-java
 
 echo "Installing CKAN and its Python dependencies..."
 git clone https://github.com/ckan/ckan
 cd ckan
-if [ $ CKANVERSION == '2.3']
+if [ $CKANVERSION == 'master' ]
 then
-    git checkout release-v2.3
+    echo "CKAN version: master"
 else
-    git checkout master
+    CKAN_TAG=$(git tag | grep ^ckan-$CKANVERSION | sort --version-sort | tail -n 1)
+    git checkout $CKAN_TAG
+    echo "CKAN version: ${CKAN_TAG#ckan-}"
 fi
 python setup.py develop
 pip install -r requirements.txt --allow-all-external
@@ -30,12 +32,12 @@ cd ckan
 paster db init -c test-core.ini
 cd -
 
-echo "Installing ckanext-ckanext-showcase and its requirements..."
+echo "Installing ckanext-showcase and its requirements..."
 python setup.py develop
 pip install -r dev-requirements.txt
 
 echo "Moving test.ini into a subdir..."
 mkdir subdir
-mv test.ini subdir
+mv test-travis.ini subdir
 
 echo "travis-build.bash is done."

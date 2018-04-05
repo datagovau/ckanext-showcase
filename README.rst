@@ -5,12 +5,12 @@
 .. image:: https://travis-ci.org/ckan/ckanext-showcase.svg?branch=master
     :target: https://travis-ci.org/ckan/ckanext-showcase
 
-.. image:: https://coveralls.io/repos/ckan/ckanext-showcase/badge.png?branch=master
-  :target: https://coveralls.io/r/ckan/ckanext-showcase?branch=master
+.. image:: https://coveralls.io/repos/ckan/ckanext-showcase/badge.svg
+  :target: https://coveralls.io/r/ckan/ckanext-showcase
 
-=============
+================
 ckanext-showcase
-=============
+================
 
 Showcase and link to datasets in use. Datasets used in an app, website or
 visualization, or featured in an article, report or blog post can be showcased
@@ -30,9 +30,13 @@ ckanext-showcase is intended to be a more powerful replacement for the
 Requirements
 ------------
 
-Current status: Beta
 
-Compatible with CKAN 2.3.
+Compatible with CKAN 2.3+.
+
+N.B. The ``migrate`` command, detailed below, requires the Related Item models
+and actions, which have been removed in CKAN 2.6. If you wish to migrate your
+Related Items, please first upgrade CKAN to 2.5, do the migration, then
+continue upgrading to CKAN 2.6+.
 
 
 ------------
@@ -135,7 +139,11 @@ From the ``ckanext-showcase`` directory::
     paster showcase migrate -c {path to production.ini}
 
 Note that each Related Item must have a unique title before migration can
-proceed.
+proceed. If you prefer resolving duplicates as showcases, you can use the --allow-duplicates
+option to migrate them anyways. Duplicate Relations will be created as
+'duplicate_' + original_related_title + '_' + related_id
+
+    paster showcase migrate -c {path to production.ini} --allow-duplicates
 
 The Related Item property ``type`` will become a Showcase tag. The Related Item
 properties ``created``, ``owner_id``, ``view_count``, and ``featured`` have no
@@ -157,9 +165,9 @@ coverage installed in your virtualenv (``pip install coverage``) then run::
     nosetests --ckan --nologcapture --with-pylons=test.ini --with-coverage --cover-package=ckanext.showcase --cover-inclusive --cover-erase --cover-tests
 
 
----------------------------------
+------------------------------------
 Registering ckanext-showcase on PyPI
----------------------------------
+------------------------------------
 
 ckanext-showcase should be availabe on PyPI as
 https://pypi.python.org/pypi/ckanext-showcase. If that link doesn't work, then
@@ -186,9 +194,9 @@ steps:
        git push --tags
 
 
-----------------------------------------
+-------------------------------------------
 Releasing a New Version of ckanext-showcase
-----------------------------------------
+-------------------------------------------
 
 ckanext-showcase is availabe on PyPI as https://pypi.python.org/pypi/ckanext-showcase.
 To publish a new version to PyPI follow these steps:
@@ -211,3 +219,22 @@ To publish a new version to PyPI follow these steps:
 
        git tag 0.0.2
        git push --tags
+
+
+-------------------------------------------
+i18n
+-------------------------------------------
+
+See: "Internationalizing strings in extensions" : http://docs.ckan.org/en/latest/extensions/translating-extensions.html
+
+1. Install babel
+
+       pip install Babel
+
+2. Init Catalog for your language
+
+       python setup.py init_catalog -l es
+
+3. Compile your language catalog ( You can force pybabel compile to compile messages marked as fuzzy with the -f)
+
+       python setup.py compile_catalog -f -l es

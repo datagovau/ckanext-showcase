@@ -1,11 +1,21 @@
-from routes import url_for
+from ckan.lib.helpers import url_for
 from nose import tools as nosetools
+from nose import SkipTest
 
+from ckan.plugins import toolkit as tk
 import ckan.model as model
-import ckan.tests.helpers as helpers
-import ckan.tests.factories as factories
+try:
+    import ckan.tests.factories as factories
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.factories as factories
+
+try:
+    import ckan.tests.helpers as helpers
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.helpers as helpers
 
 from ckanext.showcase.model import ShowcasePackageAssociation
+from ckanext.showcase.tests import ShowcaseFunctionalTestBase
 
 import logging
 log = logging.getLogger(__name__)
@@ -13,7 +23,7 @@ log = logging.getLogger(__name__)
 submit_and_follow = helpers.submit_and_follow
 
 
-class TestShowcaseIndex(helpers.FunctionalTestBase):
+class TestShowcaseIndex(ShowcaseFunctionalTestBase):
 
     def test_showcases_redirects_to_showcase(self):
         '''/showcases redirects to /showcase.'''
@@ -43,7 +53,7 @@ class TestShowcaseIndex(helpers.FunctionalTestBase):
         response.mustcontain("my-showcase")
 
 
-class TestShowcaseNewView(helpers.FunctionalTestBase):
+class TestShowcaseNewView(ShowcaseFunctionalTestBase):
 
     def test_showcase_create_form_renders(self):
         app = self._get_test_app()
@@ -81,7 +91,7 @@ class TestShowcaseNewView(helpers.FunctionalTestBase):
                                        action='manage_datasets', id='my-showcase'), create_response.request.path)
 
 
-class TestShowcaseEditView(helpers.FunctionalTestBase):
+class TestShowcaseEditView(ShowcaseFunctionalTestBase):
 
     def test_showcase_edit_form_renders(self):
         '''
@@ -123,7 +133,7 @@ class TestShowcaseEditView(helpers.FunctionalTestBase):
                                        action='read', id='my-changed-showcase'), edit_response.request.path)
 
 
-class TestDatasetView(helpers.FunctionalTestBase):
+class TestDatasetView(ShowcaseFunctionalTestBase):
 
     '''Plugin adds a new showcases view for datasets.'''
 
@@ -280,7 +290,7 @@ class TestDatasetView(helpers.FunctionalTestBase):
         nosetools.assert_equal(model.Session.query(ShowcasePackageAssociation).count(), 0)
 
 
-class TestShowcaseAdminManageView(helpers.FunctionalTestBase):
+class TestShowcaseAdminManageView(ShowcaseFunctionalTestBase):
 
     '''Plugin adds a showcase admin management page to ckan-admin section.'''
 
@@ -288,6 +298,8 @@ class TestShowcaseAdminManageView(helpers.FunctionalTestBase):
         '''
         ckan-admin index page has a showcase config tab.
         '''
+        if not tk.check_ckan_version(min_version='2.4'):
+            raise SkipTest('Showcase config tab only available for CKAN 2.4+')
 
         app = self._get_test_app()
         sysadmin = factories.Sysadmin()
@@ -351,3 +363,19 @@ class TestShowcaseAdminManageView(helpers.FunctionalTestBase):
                            status=200, extra_environ=env)
 
         nosetools.assert_true('There are currently no Showcase Admins' in response)
+
+
+class TestSearch(helpers.FunctionalTestBase):
+
+    def test_search_with_nonascii_filter_query(self):
+        '''
+        Searching with non-ASCII filter queries works.
+
+        See https://github.com/ckan/ckanext-showcase/issues/34.
+        '''
+        app = self._get_test_app()
+        tag = u'\xe4\xf6\xfc'
+        dataset = factories.Dataset(tags=[{'name': tag, 'state': 'active'}])
+        result = helpers.call_action('package_search', fq='tags:' + tag)
+        nosetools.assert_equals(result['count'], 1)
+
