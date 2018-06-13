@@ -3,13 +3,23 @@ from nose import tools as nosetools
 from ckan.model.package import Package
 import ckan.model as model
 import ckan.plugins.toolkit as toolkit
-import ckan.tests.factories as factories
-import ckan.tests.helpers as helpers
+
+try:
+    import ckan.tests.factories as factories
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.factories as factories
+
+try:
+    import ckan.tests.helpers as helpers
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.helpers as helpers
+
 
 from ckanext.showcase.model import ShowcasePackageAssociation, ShowcaseAdmin
+from ckanext.showcase.tests import ShowcaseFunctionalTestBase
 
 
-class TestCreateShowcase(helpers.FunctionalTestBase):
+class TestCreateShowcase(ShowcaseFunctionalTestBase):
 
     def test_showcase_create_no_args(self):
         '''
@@ -69,7 +79,7 @@ class TestCreateShowcase(helpers.FunctionalTestBase):
                                .filter(Package.type == 'showcase').count(), 1)
 
 
-class TestCreateShowcasePackageAssociation(helpers.FunctionalTestBase):
+class TestCreateShowcasePackageAssociation(ShowcaseFunctionalTestBase):
 
     def test_association_create_no_args(self):
         '''
@@ -160,7 +170,7 @@ class TestCreateShowcasePackageAssociation(helpers.FunctionalTestBase):
                                 showcase_id=showcase_id)
 
 
-class TestCreateShowcaseAdmin(helpers.FunctionalTestBase):
+class TestCreateShowcaseAdmin(ShowcaseFunctionalTestBase):
 
     def test_showcase_admin_add_creates_showcase_admin_user(self):
         '''

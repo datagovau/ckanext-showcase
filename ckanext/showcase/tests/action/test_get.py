@@ -1,11 +1,21 @@
 from nose import tools as nosetools
+from nose import SkipTest
 
 import ckan.plugins.toolkit as toolkit
-import ckan.tests.factories as factories
-import ckan.tests.helpers as helpers
+try:
+    import ckan.tests.factories as factories
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.factories as factories
+
+try:
+    import ckan.tests.helpers as helpers
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.helpers as helpers
+
+from ckanext.showcase.tests import ShowcaseFunctionalTestBase
 
 
-class TestShowcaseShow(helpers.FunctionalTestBase):
+class TestShowcaseShow(ShowcaseFunctionalTestBase):
 
     def test_showcase_show_no_args(self):
         '''
@@ -110,8 +120,52 @@ class TestShowcaseShow(helpers.FunctionalTestBase):
         # the num_datasets should only include active datasets
         nosetools.assert_equal(showcase_shown['num_datasets'], 2)
 
+    def test_showcase_anon_user_can_see_package_list_when_showcase_association_was_deleted(self):
+        '''
+        When a showcase is deleted, the remaining associations with formerly associated
+        packages or showcases can still be displayed.
+        '''
+        app = self._get_test_app()
 
-class TestShowcaseList(helpers.FunctionalTestBase):
+        sysadmin = factories.User(sysadmin=True)
+
+        showcase_one = factories.Dataset(type='showcase', name='showcase-one')
+        showcase_two = factories.Dataset(type='showcase', name='showcase-two')
+        package_one = factories.Dataset()
+        package_two = factories.Dataset()
+
+        admin_context = {'user': sysadmin['name']}
+
+        # create the associations
+        helpers.call_action('ckanext_showcase_package_association_create',
+                            context=admin_context, package_id=package_one['id'],
+                            showcase_id=showcase_one['id'])
+        helpers.call_action('ckanext_showcase_package_association_create',
+                            context=admin_context, package_id=package_one['id'],
+                            showcase_id=showcase_two['id'])
+        helpers.call_action('ckanext_showcase_package_association_create',
+                            context=admin_context, package_id=package_two['id'],
+                            showcase_id=showcase_one['id'])
+        helpers.call_action('ckanext_showcase_package_association_create',
+                            context=admin_context, package_id=package_two['id'],
+                            showcase_id=showcase_two['id'])
+
+        # delete one of the associated showcases
+        helpers.call_action('package_delete', context=admin_context,
+                            id=showcase_two['id'])
+
+        # the anon user can still see the associated packages of remaining showcase
+        associated_packages = helpers.call_action(
+            'ckanext_showcase_package_list',
+            showcase_id=showcase_one['id'])
+
+        nosetools.assert_equal(len(associated_packages), 2)
+
+        # overview of packages can still be seen
+        app.get("/dataset", status=200)
+
+
+class TestShowcaseList(ShowcaseFunctionalTestBase):
 
     def test_showcase_list(self):
         '''Showcase list action returns names of showcases in site.'''
@@ -150,7 +204,7 @@ class TestShowcaseList(helpers.FunctionalTestBase):
         nosetools.assert_true((dataset_two['name'], dataset_two['id']) not in showcase_list_name_id)
 
 
-class TestShowcasePackageList(helpers.FunctionalTestBase):
+class TestShowcasePackageList(ShowcaseFunctionalTestBase):
 
     '''Tests for ckanext_showcase_package_list'''
 
@@ -300,7 +354,7 @@ class TestShowcasePackageList(helpers.FunctionalTestBase):
                                 showcase_id=package['id'])
 
 
-class TestPackageShowcaseList(helpers.FunctionalTestBase):
+class TestPackageShowcaseList(ShowcaseFunctionalTestBase):
 
     '''Tests for ckanext_package_showcase_list'''
 
@@ -411,7 +465,7 @@ class TestPackageShowcaseList(helpers.FunctionalTestBase):
                                 package_id=showcase['id'])
 
 
-class TestShowcaseAdminList(helpers.FunctionalTestBase):
+class TestShowcaseAdminList(ShowcaseFunctionalTestBase):
 
     '''Tests for ckanext_showcase_admin_list'''
 
@@ -468,7 +522,7 @@ class TestShowcaseAdminList(helpers.FunctionalTestBase):
         nosetools.assert_true({'name': user_three['name'], 'id': user_three['id']} not in showcase_admin_list)
 
 
-class TestPackageSearchBeforeSearch(helpers.FunctionalTestBase):
+class TestPackageSearchBeforeSearch(ShowcaseFunctionalTestBase):
 
     '''
     Extension uses the `before_search` method to alter search parameters.
@@ -513,31 +567,33 @@ class TestPackageSearchBeforeSearch(helpers.FunctionalTestBase):
         nosetools.assert_true('dataset' not in types)
 
 
-# Needs ckan/ckan#2380 to be merged
-# class TestUserShowBeforeSearch(helpers.FunctionalTestBase):
+class TestUserShowBeforeSearch(ShowcaseFunctionalTestBase):
 
-#     '''
-#     Extension uses the `before_search` method to alter results of user_show
-#     (via package_search).
-#     '''
+    '''
+    Extension uses the `before_search` method to alter results of user_show
+    (via package_search).
+    '''
 
-#     def test_user_show_no_additional_filters(self):
-#         '''
-#         Perform package_search with no additional filters should not include
-#         showcases.
-#         '''
-#         user = factories.User()
-#         factories.Dataset(user=user)
-#         factories.Dataset(user=user)
-#         factories.Dataset(user=user, type='showcase')
-#         factories.Dataset(user=user, type='custom')
+    def test_user_show_no_additional_filters(self):
+        '''
+        Perform package_search with no additional filters should not include
+        showcases.
+        '''
+        if not toolkit.check_ckan_version(min_version='2.4'):
+            raise SkipTest('Filtering out showcases requires CKAN 2.4+ (ckan/ckan/issues/2380)')
 
-#         search_results = helpers.call_action('user_show', context={},
-#                                              include_datasets=True,
-#                                              id=user['name'])['datasets']
+        user = factories.User()
+        factories.Dataset(user=user)
+        factories.Dataset(user=user)
+        factories.Dataset(user=user, type='showcase')
+        factories.Dataset(user=user, type='custom')
 
-#         types = [result['type'] for result in search_results]
+        search_results = helpers.call_action('user_show', context={},
+                                             include_datasets=True,
+                                             id=user['name'])['datasets']
 
-#         nosetools.assert_equal(len(search_results), 3)
-#         nosetools.assert_true('showcase' not in types)
-#         nosetools.assert_true('custom' in types)
+        types = [result['type'] for result in search_results]
+
+        nosetools.assert_equal(len(search_results), 3)
+        nosetools.assert_true('showcase' not in types)
+        nosetools.assert_true('custom' in types)

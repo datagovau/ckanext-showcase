@@ -2,15 +2,22 @@ from nose import tools as nosetools
 
 import ckan.model as model
 import ckan.plugins.toolkit as toolkit
-import ckan.tests.factories as factories
-import ckan.tests.helpers as helpers
+try:
+    import ckan.tests.factories as factories
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.factories as factories
+
+try:
+    import ckan.tests.helpers as helpers
+except ImportError:  # for ckan <= 2.3
+    import ckan.new_tests.helpers as helpers
 
 from ckanext.showcase.model import ShowcasePackageAssociation, ShowcaseAdmin
+from ckanext.showcase.tests import ShowcaseFunctionalTestBase
 from ckan.model.package import Package
-from ckan.model.user import User
 
 
-class TestDeleteShowcase(helpers.FunctionalTestBase):
+class TestDeleteShowcase(ShowcaseFunctionalTestBase):
 
     def test_showcase_delete_no_args(self):
         '''
@@ -94,7 +101,7 @@ class TestDeleteShowcase(helpers.FunctionalTestBase):
         nosetools.assert_equal(model.Session.query(ShowcasePackageAssociation).count(), 0)
 
 
-class TestDeletePackage(helpers.FunctionalTestBase):
+class TestDeletePackage(ShowcaseFunctionalTestBase):
 
     def test_package_delete_retains_associations(self):
         '''
@@ -152,7 +159,7 @@ class TestDeletePackage(helpers.FunctionalTestBase):
         nosetools.assert_equal(model.Session.query(ShowcasePackageAssociation).count(), 1)
 
 
-class TestDeleteShowcasePackageAssociation(helpers.FunctionalTestBase):
+class TestDeleteShowcasePackageAssociation(ShowcaseFunctionalTestBase):
 
     def test_association_delete_no_args(self):
         '''
@@ -258,7 +265,7 @@ class TestDeleteShowcasePackageAssociation(helpers.FunctionalTestBase):
                                .filter(Package.type == 'showcase').count(), 1)
 
 
-class TestRemoveShowcaseAdmin(helpers.FunctionalTestBase):
+class TestRemoveShowcaseAdmin(ShowcaseFunctionalTestBase):
 
     def test_showcase_admin_remove_deletes_showcase_admin_user(self):
         '''
